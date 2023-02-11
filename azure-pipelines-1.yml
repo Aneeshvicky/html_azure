@@ -1,0 +1,45 @@
+# Azure Pipelines YAML for building and deploying HTML site
+
+name: HTML_Build_and_Deploy
+
+# Select the source control provider and the repository containing the source code
+resources:
+  repositories:
+  - repository: source
+    type: git
+    name: html_azure
+
+# Define the build stage
+stages:
+- stage: Build
+  jobs:
+  - job: BuildJob
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: CopyFiles@2
+      displayName: 'Copy HTML files to build artifact directory'
+      inputs:
+        SourceFolder: static.html
+        TargetFolder: $(Build.ArtifactStagingDirectory)/html
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish HTML build artifacts'
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/html
+
+# Define the deployment stage
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: AzureFileCopy@4
+      displayName: 'Copy HTML files to Azure Web App'
+      inputs:
+        SourcePath: $(System.DefaultWorkingDirectory)/html
+        azureSubscription: <your_azure_subscription_name>
+        Destination: AzureWebApp
+        WebAppName: new
+
